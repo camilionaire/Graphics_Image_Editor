@@ -53,4 +53,52 @@
       <Filter>Header Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="tree.tga" />
+    <Image Include="church.tga" />
+    <Image Include="flower.tga" />
+    <Image Include="result\checkers-filter-bartlett.tga" />
+    <Image Include="result\checkers-filter-box.tga" />
+    <Image Include="result\checkers-filter-edge.tga" />
+    <Image Include="result\checkers-filter-enhance.tga" />
+    <Image Include="result\checkers-filter-gauss.tga" />
+    <Image Include="result\checkers-filter-gauss-n.tga" />
+    <Image Include="result\checkers-half.tga" />
+    <Image Include="result\checkers-rotate.tga" />
+    <Image Include="result\checkers-scale.tga" />
+    <Image Include="result\checkers-small-double.tga" />
+    <Image Include="result\church-dither-bright.tga" />
+    <Image Include="result\church-dither-cluster.tga" />
+    <Image Include="result\church-dither-color.tga" />
+    <Image Include="result\church-dither-fs.tga" />
+    <Image Include="result\church-dither-order.tga" />
+    <Image Include="result\church-dither-rand.tga" />
+    <Image Include="result\church-dither-thresh.tga" />
+    <Image Include="result\church-filter-bartlett.tga" />
+    <Image Include="result\church-filter-bartlett_old.tga" />
+    <Image Include="result\church-filter-box.tga" />
+    <Image Include="result\church-filter-edge.tga" />
+    <Image Include="result\church-filter-enhance.tga" />
+    <Image Include="result\church-filter-gauss.tga" />
+    <Image Include="result\church-filter-gauss-n.tga" />
+    <Image Include="result\church-half.tga" />
+    <Image Include="result\church-npr-paint.tga" />
+    <Image Include="result\church-quant-pop.tga" />
+    <Image Include="result\church-quant-unif.tga" />
+    <Image Include="result\church-rotate.tga" />
+    <Image Include="result\church-scale.tga" />
+    <Image Include="result\church-small-double.tga" />
+    <Image Include="result\colors-for-bw.tga" />
+    <Image Include="result\colors-for-bw-gray.tga" />
+    <Image Include="result\gray-checkers-filter-edge.tga" />
+    <Image Include="result\gray-checkers-filter-enhance.tga" />
+    <Image Include="result\wiz-npr-paint.tga" />
+    <Image Include="result\wiz-quant-pop.tga" />
+    <Image Include="result\wiz-quant-unif.tga" />
+    <Image Include="result\zcolorcheck-comp-atop.tga" />
+    <Image Include="result\zcolorcheck-comp-in.tga" />
+    <Image Include="result\zcolorcheck-comp-out.tga" />
+    <Image Include="result\zcolorcheck-comp-over.tga" />
+    <Image Include="result\zcolorcheck-comp-xor.tga" />
+  </ItemGroup>
 </Project>
