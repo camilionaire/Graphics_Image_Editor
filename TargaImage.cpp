@@ -236,8 +236,21 @@ bool TargaImage::To_Grayscale()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Quant_Uniform()
 {
-    ClearToBlack();
-    return false;
+//    ClearToBlack();
+    cout << "YEP, WE'RE IN THE QUANT-UNIF METHOD ALRIGHT... THAT'S FOR SURE."
+        << endl;
+
+    cout << "old red: " << data[RED] << " new red is: " << data[RED] / 32 << endl;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        int newRed = data[i + RED] / 32 + 0.5;
+        int newGreen = data[i + GREEN] / 32 + 0.5;
+        int newBlue = data[i + BLUE] / 64 + 0.5;
+        data[i + RED] = newRed * 32;
+        data[i + GREEN] = newGreen * 32;
+        data[i + BLUE] = newBlue * 64;
+    }
+//    return false;
+    return true;
 }// Quant_Uniform
 
 

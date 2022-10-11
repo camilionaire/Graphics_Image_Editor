@@ -54,9 +54,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="tree.tga" />
-    <Image Include="church.tga" />
-    <Image Include="flower.tga" />
+    <Image Include="result\tree.tga" />
+    <Image Include="result\church.tga" />
+    <Image Include="result\flower.tga" />
     <Image Include="result\checkers-filter-bartlett.tga" />
     <Image Include="result\checkers-filter-box.tga" />
     <Image Include="result\checkers-filter-edge.tga" />
@@ -100,5 +100,6 @@
     <Image Include="result\zcolorcheck-comp-out.tga" />
     <Image Include="result\zcolorcheck-comp-over.tga" />
     <Image Include="result\zcolorcheck-comp-xor.tga" />
+    <Image Include="result\wiz.tga" />
   </ItemGroup>
 </Project>

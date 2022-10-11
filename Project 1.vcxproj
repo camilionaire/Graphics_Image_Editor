@@ -115,8 +115,8 @@
     <None Include="Globals.inl" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="church.tga" />
-    <Image Include="flower.tga" />
+    <Image Include="result\church.tga" />
+    <Image Include="result\flower.tga" />
     <Image Include="result\checkers-filter-bartlett.tga" />
     <Image Include="result\checkers-filter-box.tga" />
     <Image Include="result\checkers-filter-edge.tga" />
@@ -155,12 +155,13 @@
     <Image Include="result\wiz-npr-paint.tga" />
     <Image Include="result\wiz-quant-pop.tga" />
     <Image Include="result\wiz-quant-unif.tga" />
+    <Image Include="result\wiz.tga" />
     <Image Include="result\zcolorcheck-comp-atop.tga" />
     <Image Include="result\zcolorcheck-comp-in.tga" />
     <Image Include="result\zcolorcheck-comp-out.tga" />
     <Image Include="result\zcolorcheck-comp-over.tga" />
     <Image Include="result\zcolorcheck-comp-xor.tga" />
-    <Image Include="tree.tga" />
+    <Image Include="result\tree.tga" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
