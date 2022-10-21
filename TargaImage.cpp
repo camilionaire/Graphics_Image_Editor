@@ -260,10 +260,43 @@ bool TargaImage::Quant_Uniform()
 //  Return success of operation.
 //
 ///////////////////////////////////////////////////////////////////////////////
+
+// this I got from
+// https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
+// but it appears to be other places.
+int cmpfunc(const void* a, const void* b) {
+    return (*(int*)b - *(int*)a);
+}
+
 bool TargaImage::Quant_Populosity()
 {
-    ClearToBlack();
-    return false;
+//    ClearToBlack();
+    cout << "yes, we're in the quant pop method... cool." << endl;
+
+    // this downgrades all the colors and rounds them.
+    // so should be between 0 and 32
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        data[i+ RED] = data[i + RED] / 8 + 0.5;
+        data[i + GREEN] = data[i + GREEN] / 8 + 0.5;
+        data[i + BLUE] = data[i + BLUE] / 8 + 0.5;
+    }
+
+    int hist[32*32*32] = { 0 };
+    int ordHist[32*32*32] = { 0 };
+
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        hist[data[i + RED] * 1024 + 
+            data[i + GREEN] * 32 + 
+            data[i + BLUE]] += 1;
+        ordHist[data[i + RED] * 1024 + 
+            data[i + GREEN] * 32 + 
+            data[i + BLUE]] += 1;
+    }
+
+    qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
+    cout << "The 256th most prominent color level is: " << ordHist[255] << endl;
+
+    return true;
 }// Quant_Populosity
 
 
