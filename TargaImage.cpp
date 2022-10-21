@@ -284,7 +284,9 @@ bool TargaImage::Quant_Populosity()
     int hist[32*32*32] = { 0 };
     int ordHist[32*32*32] = { 0 };
 
+    
     for (int i = 0; i < (height * width * 4); i += 4) {
+        // we add a num to the color position
         hist[data[i + RED] * 1024 + 
             data[i + GREEN] * 32 + 
             data[i + BLUE]] += 1;
@@ -292,9 +294,76 @@ bool TargaImage::Quant_Populosity()
             data[i + GREEN] * 32 + 
             data[i + BLUE]] += 1;
     }
-
     qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
-    cout << "The 256th most prominent color level is: " << ordHist[255] << endl;
+
+    int least_common = ordHist[255];
+    int j = 0;
+    int colors[256][3] = { 0 };
+
+    // this adds the colors that are more popular than the 256th
+    for (int i = 0; i < (32 * 32 * 32); i++) {
+        if (hist[i] > least_common) {
+            colors[j][RED] = i / 1024;
+            int greenDiv = i % 1024;
+            colors[j][GREEN] = greenDiv / 32;
+            colors[j][BLUE] = greenDiv % 32;
+            ++j;
+        }
+    }
+
+    // this evens everything out and gets rid of the stragglers.
+    int i = 0;
+    while (j < 256) {
+        if (hist[i] == least_common) {
+            colors[j][RED] = i / 1024;
+            int greenDiv = i % 1042;
+            colors[j][GREEN] = greenDiv / 32;
+            colors[j][BLUE] = greenDiv % 32;
+            ++j;
+        }
+        ++i;
+    } // now we should have the total 256 colors.
+
+    // println testing...
+    cout << "These are our colors:\n";
+    for (int i = 0; i < 256; ++i) {
+        cout << "A color: " << "("
+            << colors[i][0] << ", " << colors[i][1] << ", " 
+            << colors[i][2] << ")" << endl;
+    }
+
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        float closest = 56.0; // bigest distance with our 32 colors.
+        int newColor[3];
+
+        for (int j = 0; j < 256; ++j) {
+            float euclidDist = sqrt(
+                pow(data[i + RED] - colors[j][RED], 2) +
+                pow(data[i + GREEN] - colors[j][GREEN], 2) +
+                pow(data[i + BLUE] - colors[j][BLUE], 2) 
+            );
+
+            if (euclidDist < closest) {
+                closest = euclidDist;
+                newColor[RED] = colors[j][RED];
+                newColor[GREEN] = colors[j][GREEN];
+                newColor[BLUE] = colors[j][BLUE];
+            }
+        }
+
+        // finally sets the new color to the closest
+        data[i + RED] = newColor[RED];
+        data[i + GREEN] = newColor[GREEN];
+        data[i + BLUE] = newColor[BLUE];
+    }
+
+    // shifts the colors back to their 256 slotted color scheme
+    // instead of the 1-32.
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        data[i + RED] = data[i + RED] * 8;
+        data[i + GREEN] = data[i + GREEN] * 8;
+        data[i + BLUE] = data[i + BLUE] * 8;
+    }
 
     return true;
 }// Quant_Populosity
