@@ -281,19 +281,18 @@ bool TargaImage::Quant_Populosity()
         data[i + BLUE] = data[i + BLUE] / 8 + 0.5;
     }
 
+    // sets up a histogram and one to be ordered.
     int hist[32*32*32] = { 0 };
-    int ordHist[32*32*32] = { 0 };
-
+    int ordHist[32*32*32];
     
     for (int i = 0; i < (height * width * 4); i += 4) {
         // we add a num to the color position
         hist[data[i + RED] * 1024 + 
             data[i + GREEN] * 32 + 
             data[i + BLUE]] += 1;
-        ordHist[data[i + RED] * 1024 + 
-            data[i + GREEN] * 32 + 
-            data[i + BLUE]] += 1;
     }
+
+    copy(hist, hist + size(hist), ordHist);
     qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
 
     int least_common = ordHist[255];
@@ -324,20 +323,13 @@ bool TargaImage::Quant_Populosity()
         ++i;
     } // now we should have the total 256 colors.
 
-    // println testing...
-    cout << "These are our colors:\n";
-    for (int i = 0; i < 256; ++i) {
-        cout << "A color: " << "("
-            << colors[i][0] << ", " << colors[i][1] << ", " 
-            << colors[i][2] << ")" << endl;
-    }
-
     for (int i = 0; i < (height * width * 4); i += 4) {
-        float closest = 56.0; // bigest distance with our 32 colors.
+        // bigest distance with our 32 colors is actually 56ish
+        double closest = 1000.0; 
         int newColor[3];
 
         for (int j = 0; j < 256; ++j) {
-            float euclidDist = sqrt(
+            double euclidDist = sqrt(
                 pow(data[i + RED] - colors[j][RED], 2) +
                 pow(data[i + GREEN] - colors[j][GREEN], 2) +
                 pow(data[i + BLUE] - colors[j][BLUE], 2) 
@@ -376,8 +368,24 @@ bool TargaImage::Quant_Populosity()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Threshold()
 {
-    ClearToBlack();
-    return false;
+//    ClearToBlack();
+    To_Grayscale();
+
+    // i am not going to be changing it and comparing to 0.5, instead could
+    // just compare to 128 as ints i think...
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        if (data[i] < 128) {
+            data[i + RED] = 0;
+            data[i + GREEN] = 0;
+            data[i + BLUE] = 0;
+        }
+        else {
+            data[i + RED] = 255;
+            data[i + GREEN] = 255;
+            data[i + BLUE] = 255;
+        }
+    }
+    return true;
 }// Dither_Threshold
 
 
