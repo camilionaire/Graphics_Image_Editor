@@ -420,10 +420,70 @@ bool TargaImage::Dither_FS()
 //  success of operation.
 //
 ///////////////////////////////////////////////////////////////////////////////
+// lit stole this from: https://cplusplus.com/forum/beginner/12731/
+void bubbleSort(unsigned char scores[], int numScores) {
+    bool exchanges;
+    do {
+        exchanges = false; // assume no exchanges
+        for (int i = 0; i < numScores - 1; i++) {
+            if (scores[i] > scores[i + 1]) {
+                unsigned char temp = scores[i];
+                scores[i] = scores[i + 1];
+                scores[i + 1] = temp;
+                exchanges = true; // after exchange, must look again
+            }
+        }
+    } while (exchanges);
+}
+// this should be ascending order i think...
+int cmpfunc2(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
 bool TargaImage::Dither_Bright()
 {
-    ClearToBlack();
-    return false;
+    To_Grayscale();
+
+    int sum = 0;
+
+    unsigned char* arrToOrd = new unsigned char[height * width];
+
+    for (int i = 0; i < (height * width); ++i) {
+        sum += data[i*4];
+        arrToOrd[i] = data[i*4];
+    }
+    int sizeP = height * width;
+    double avg = (sum / double(sizeP)) / 256.0;
+    int spot = (1-avg) * (sizeP);
+
+//    qsort(arrToOrd, (height * width), sizeof(unsigned char), (cmpfunc));
+    bubbleSort(arrToOrd, sizeP);
+
+    int theSpot = arrToOrd[spot];
+
+    cout << "first 4 are: " << endl;
+    cout << (int) arrToOrd[0] << ", " << (int) arrToOrd[1] << endl;
+    cout << (int) arrToOrd[2] << ", " << (int) arrToOrd[3] << endl;
+    cout << "dither bright, the image avg is:" << endl;
+    cout << avg << endl;
+    cout << "the spot in the thing was: " << spot << endl;;
+    cout << "our mark is: " << theSpot << endl;
+
+    // NEED TO FIX THIS TO TAKE IN THE AVERAGE VALUE...
+    for (int i = 0; i < (height * width * 4); i += 4) {
+//        double gray = (0.299 * data[i + RED]
+//            + 0.587 * data[i + GREEN]
+//            + 0.114 * data[i + BLUE]);
+        if (data[i] < theSpot) {
+            data[i + RED] = 0;
+            data[i + GREEN] = 0;
+            data[i + BLUE] = 0;
+        } else {
+            data[i + RED] = 255;
+            data[i + GREEN] = 255;
+            data[i + BLUE] = 255;
+        }
+    }
+    return true;
 }// Dither_Bright
 
 
