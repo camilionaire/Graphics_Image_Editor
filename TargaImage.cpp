@@ -586,8 +586,20 @@ bool TargaImage::Comp_Out(TargaImage* pImage)
         return false;
     }
 
-    ClearToBlack();
-    return false;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+
+        float alpha = (((int) pImage->data[i + 3]) / 255.0);
+
+        data[i + RED] = ((data[i + RED] / 255.0) * (1 - alpha)) * 255;
+
+        data[i + GREEN] = ((data[i + GREEN] / 255.0) * (1 - alpha)) * 255;
+
+        data[i + BLUE] = ((data[i + BLUE] / 255.0) * (1 - alpha)) * 255;
+        data[i + 3] = ((1 - alpha) * (data[i + 3] / 255.0)) * 255;
+    }
+
+//    ClearToBlack();
+    return true;
 }// Comp_Out
 
 
