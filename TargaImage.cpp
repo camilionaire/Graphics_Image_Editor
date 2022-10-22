@@ -525,24 +525,8 @@ bool TargaImage::Comp_Over(TargaImage* pImage)
         return false;
     }
 
-//   cout << "We made it to the comp over function... let's see where we go!" << endl;
-//   cout << "width: " << width << " height: " << height << endl;
-//   cout << "first couple alphas:\n";
-//   cout << (int)data[3] << ", " << (int)data[7] << endl;
-//   cout << (int)data[11] << ", " << (int)data[15] << endl;
-//   cout << (int)data[23] << ", " << (int)data[27] << endl << endl;
-
-//   for (int i = 0; i < (height * width * 4); i += 20) {
-//       cout << (int)data[i + 3] << ", " << (int)data[i + 7] << endl;
-//       cout << (int)data[i + 11] << ", " << (int)data[i + 15] << ", " << (int)data[i + 19] << endl;
-//   }
-
     for (int i = 0; i < (height * width * 4); i += 4) {
         float alpha = (((int) data[i + 3]) / 255.0);
-
-//       if (i < 100) {
-//           cout << "i: " << i+3 << " alpha: " << alpha << endl;
-//       }
 
         data[i + RED] = ((data[i + RED] / 255.0) + \
             ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
@@ -553,7 +537,6 @@ bool TargaImage::Comp_Over(TargaImage* pImage)
         data[i + 3] = (alpha + \
             ((1.0 - alpha) * (pImage->data[i + 3] / 255.0))) * 255;
     }
-    cout << "I guess we finished the thing, huh..." << endl;
     return true;
 }// Comp_Over
 
@@ -572,8 +555,20 @@ bool TargaImage::Comp_In(TargaImage* pImage)
         return false;
     }
 
-    ClearToBlack();
-    return false;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+
+        float alpha = (((int) pImage->data[i + 3]) / 255.0);
+
+        data[i + RED] = ((data[i + RED] / 255.0) * (alpha)) * 255;
+
+        data[i + GREEN] = ((data[i + GREEN] / 255.0) * (alpha)) * 255;
+
+        data[i + BLUE] = ((data[i + BLUE] / 255.0) * (alpha)) * 255;
+        data[i + 3] = (alpha * (data[i + 3] / 255.0)) * 255;
+    }
+
+//    ClearToBlack();
+    return true;
 }// Comp_In
 
 
