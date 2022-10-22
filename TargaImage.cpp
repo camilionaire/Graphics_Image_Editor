@@ -616,9 +616,23 @@ bool TargaImage::Comp_Atop(TargaImage* pImage)
         cout << "Comp_Atop: Images not the same size\n";
         return false;
     }
+    
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        float alpha = (((int) data[i + 3]) / 255.0);
+        float pAlpha = (((int) pImage->data[i + 3]) / 255.0);
 
-    ClearToBlack();
-    return false;
+        data[i + RED] = (((data[i + RED] / 255.0) * pAlpha) + \
+            ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
+        data[i + GREEN] = (((data[i + GREEN] / 255.0) * pAlpha) + \
+            ((1.0 - alpha) * (pImage->data[i + GREEN] / 255.0))) * 255;
+        data[i + BLUE] = (((data[i + BLUE] / 255.0) * pAlpha) + \
+            ((1.0 - alpha) * (pImage->data[i + BLUE] / 255.0))) * 255;
+        data[i + 3] = ((pAlpha * alpha) + \
+            ((1.0 - alpha) * pAlpha)) * 255;
+    }
+
+//    ClearToBlack();
+    return true;
 }// Comp_Atop
 
 
@@ -636,8 +650,22 @@ bool TargaImage::Comp_Xor(TargaImage* pImage)
         return false;
     }
 
-    ClearToBlack();
-    return false;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        float alpha = (((int) data[i + 3]) / 255.0);
+        float pAlpha = (((int) pImage->data[i + 3]) / 255.0);
+
+        data[i + RED] = (((data[i + RED] / 255.0) * (1-pAlpha)) + \
+            ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
+        data[i + GREEN] = (((data[i + GREEN] / 255.0) * (1-pAlpha)) + \
+            ((1.0 - alpha) * (pImage->data[i + GREEN] / 255.0))) * 255;
+        data[i + BLUE] = (((data[i + BLUE] / 255.0) * (1-pAlpha)) + \
+            ((1.0 - alpha) * (pImage->data[i + BLUE] / 255.0))) * 255;
+        data[i + 3] = (((1-pAlpha) * alpha) + \
+            ((1.0 - alpha) * pAlpha)) * 255;
+    }
+
+//    ClearToBlack();
+    return true;
 }// Comp_Xor
 
 
