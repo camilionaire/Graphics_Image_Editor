@@ -276,24 +276,30 @@ bool TargaImage::Quant_Populosity()
     // this downgrades all the colors and rounds them.
     // so should be between 0 and 32
     for (int i = 0; i < (height * width * 4); i += 4) {
-        data[i+ RED] = data[i + RED] / 8 + 0.5;
-        data[i + GREEN] = data[i + GREEN] / 8 + 0.5;
-        data[i + BLUE] = data[i + BLUE] / 8 + 0.5;
+        data[i + RED] = data[i + RED] / 8;// +0.5; // took off rounding
+        data[i + GREEN] = data[i + GREEN] / 8;// +0.5;//see what happens
+        data[i + BLUE] = data[i + BLUE] / 8;// +0.5;
     }
 
     // sets up a histogram and one to be ordered.
     int hist[32*32*32] = { 0 };
-    int ordHist[32*32*32];
+    int ordHist[32 * 32 * 32] = { 0 };
     
     for (int i = 0; i < (height * width * 4); i += 4) {
         // we add a num to the color position
         hist[data[i + RED] * 1024 + 
             data[i + GREEN] * 32 + 
             data[i + BLUE]] += 1;
+        ordHist[data[i + RED] * 1024 + 
+            data[i + GREEN] * 32 + 
+            data[i + BLUE]] += 1;
     }
 
-    copy(hist, hist + size(hist), ordHist);
+    //copy(hist, hist + size(hist), ordHist);
     qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
+    // couldn't get this to work so instead am using ^^^
+    //sort(arrToOrd, arrToOrd + (sizeP * sizeof(arrToOrd[0])));
+    //sort(ordHist, ordHist + (32 * 32 * 32));
 
     int least_common = ordHist[255];
     int j = 0;
@@ -396,8 +402,30 @@ bool TargaImage::Dither_Threshold()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Random()
 {
-    ClearToBlack();
-    return false;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        // this gives the [0-1) grayscale
+        float gray = (0.299 * data[i + RED]
+            + 0.587 * data[i + GREEN]
+            + 0.114 * data[i + BLUE]) / 256.0;
+        gray += ((static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 0.4))) - .2);
+
+        int newGray = (int)floor(gray * 256);
+
+        if (newGray < 128) {
+            data[i + RED] = 0;
+            data[i + GREEN] = 0;
+            data[i + BLUE] = 0;
+        }
+        else {
+            data[i + RED] = 255;
+            data[i + GREEN] = 255;
+            data[i + BLUE] = 255;
+        }
+
+    }
+//    float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / X));
+
+    return true;
 }// Dither_Random
 
 
@@ -420,25 +448,6 @@ bool TargaImage::Dither_FS()
 //  success of operation.
 //
 ///////////////////////////////////////////////////////////////////////////////
-// lit stole this from: https://cplusplus.com/forum/beginner/12731/
-void bubbleSort(unsigned char scores[], int numScores) {
-    bool exchanges;
-    do {
-        exchanges = false; // assume no exchanges
-        for (int i = 0; i < numScores - 1; i++) {
-            if (scores[i] > scores[i + 1]) {
-                unsigned char temp = scores[i];
-                scores[i] = scores[i + 1];
-                scores[i + 1] = temp;
-                exchanges = true; // after exchange, must look again
-            }
-        }
-    } while (exchanges);
-}
-// this should be ascending order i think...
-int cmpfunc2(const void* a, const void* b) {
-    return (*(int*)a - *(int*)b);
-}
 bool TargaImage::Dither_Bright()
 {
     To_Grayscale();
@@ -451,28 +460,17 @@ bool TargaImage::Dither_Bright()
         sum += data[i*4];
         arrToOrd[i] = data[i*4];
     }
+
     int sizeP = height * width;
     double avg = (sum / double(sizeP)) / 256.0;
     int spot = (1-avg) * (sizeP);
 
-//    qsort(arrToOrd, (height * width), sizeof(unsigned char), (cmpfunc));
-    bubbleSort(arrToOrd, sizeP);
+    sort(arrToOrd, arrToOrd + (sizeP * sizeof(arrToOrd[0])));
 
     int theSpot = arrToOrd[spot];
 
-    cout << "first 4 are: " << endl;
-    cout << (int) arrToOrd[0] << ", " << (int) arrToOrd[1] << endl;
-    cout << (int) arrToOrd[2] << ", " << (int) arrToOrd[3] << endl;
-    cout << "dither bright, the image avg is:" << endl;
-    cout << avg << endl;
-    cout << "the spot in the thing was: " << spot << endl;;
-    cout << "our mark is: " << theSpot << endl;
-
     // NEED TO FIX THIS TO TAKE IN THE AVERAGE VALUE...
     for (int i = 0; i < (height * width * 4); i += 4) {
-//        double gray = (0.299 * data[i + RED]
-//            + 0.587 * data[i + GREEN]
-//            + 0.114 * data[i + BLUE]);
         if (data[i] < theSpot) {
             data[i + RED] = 0;
             data[i + GREEN] = 0;
@@ -527,8 +525,36 @@ bool TargaImage::Comp_Over(TargaImage* pImage)
         return false;
     }
 
-    ClearToBlack();
-    return false;
+//   cout << "We made it to the comp over function... let's see where we go!" << endl;
+//   cout << "width: " << width << " height: " << height << endl;
+//   cout << "first couple alphas:\n";
+//   cout << (int)data[3] << ", " << (int)data[7] << endl;
+//   cout << (int)data[11] << ", " << (int)data[15] << endl;
+//   cout << (int)data[23] << ", " << (int)data[27] << endl << endl;
+
+//   for (int i = 0; i < (height * width * 4); i += 20) {
+//       cout << (int)data[i + 3] << ", " << (int)data[i + 7] << endl;
+//       cout << (int)data[i + 11] << ", " << (int)data[i + 15] << ", " << (int)data[i + 19] << endl;
+//   }
+
+    for (int i = 0; i < (height * width * 4); i += 4) {
+        float alpha = (((int) data[i + 3]) / 255.0);
+
+//       if (i < 100) {
+//           cout << "i: " << i+3 << " alpha: " << alpha << endl;
+//       }
+
+        data[i + RED] = ((data[i + RED] / 255.0) + \
+            ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
+        data[i + GREEN] = ((data[i + GREEN] / 255.0) + \
+            ((1.0 - alpha) * (pImage->data[i + GREEN] / 255.0))) * 255;
+        data[i + BLUE] = ((data[i + BLUE] / 255.0) + \
+            ((1.0 - alpha) * (pImage->data[i + BLUE] / 255.0))) * 255;
+        data[i + 3] = (alpha + \
+            ((1.0 - alpha) * (pImage->data[i + 3] / 255.0))) * 255;
+    }
+    cout << "I guess we finished the thing, huh..." << endl;
+    return true;
 }// Comp_Over
 
 

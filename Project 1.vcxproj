@@ -162,6 +162,8 @@
     <Image Include="result\zcolorcheck-comp-over.tga" />
     <Image Include="result\zcolorcheck-comp-xor.tga" />
     <Image Include="result\tree.tga" />
+    <Image Include="result\zcolorcheck.tga" />
+    <Image Include="result\zred.tga" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
