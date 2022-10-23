@@ -103,5 +103,6 @@
     <Image Include="result\wiz.tga" />
     <Image Include="result\zcolorcheck.tga" />
     <Image Include="result\zred.tga" />
+    <Image Include="result\checkers.tga" />
   </ItemGroup>
 </Project>

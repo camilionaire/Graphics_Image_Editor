@@ -711,8 +711,63 @@ bool TargaImage::Difference(TargaImage* pImage)
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Filter_Box()
 {
-    ClearToBlack();
-    return false;
+    unsigned char *temp = new unsigned char[width * height * 4];
+
+    copy(data, data + (width * height * 4), temp);
+
+    cout << "This is where we are for temp:" << endl;
+    cout << (int) data[0] << ", " << (int) temp[0] << endl;
+    cout << (int) data[100] << ", " << (int) temp[100] << endl;
+    cout << (int) data[1000] << ", " << (int) temp[1000] << endl;
+
+
+    // goes through all the rows of the image
+    for (int r = 0; r < (height); ++r) {
+        // goes through each set of 4 pixels
+        for (int c = 0; c < (width * 4); c += 4) {
+            // find location of current 'pixel' in data
+			int loc = (r * width * 4) + (c);
+            // here is where we go around the pixels and add them up.
+            int sumR = 0;
+            int sumG = 0;
+            int sumB = 0;
+            for (int y = -2; y <= 2; ++y) {
+                for (int x = -2; x <= 2; ++x) {
+
+                    int ny = y;
+                    int nx = x;
+
+                    if (((r + y) < 0) || ((r + y) >= height)) {
+                        ny = -ny;
+                    }
+                    if (((c + (x*4)) < 0) || ((c + (x*4)) >= (width * 4))) {
+                        nx = -nx;
+                    }
+
+                    int shift = (ny * width * 4) + (nx * 4);
+                    
+                    sumR += data[loc + shift + RED];
+                    sumG += data[loc + shift + GREEN];
+                    sumB += data[loc + shift + BLUE];
+                }
+            }
+            // so i think this is broken because it is a (1/9)
+            // so i think it's broken because it's 25 and not 9
+            temp[loc + RED] = sumR  / 25.0 + 0.5;
+            temp[loc + GREEN] = sumG / 25.0 + 0.5;
+            temp[loc + BLUE] = sumB / 25.0 + 0.5;
+            if (loc == 0) {
+                cout << "our rgb sums were" << sumR << ", " << sumG << ", " << sumB << endl;
+                cout << "our new temp color" << (int)temp[loc + RED] << endl;
+                cout << "our new temp color" << (int)temp[loc + GREEN] << endl;
+                cout << "our new temp color" << (int)temp[loc + BLUE] << endl;
+            }
+        }
+    } // after both row column for loops.
+    // copy the adjusted values back into the data.. i think
+    copy(temp, temp + (width * height * 4), data);
+
+    return true;
 }// Filter_Box
 
 

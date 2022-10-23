@@ -115,6 +115,7 @@
     <None Include="Globals.inl" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="result\checkers.tga" />
     <Image Include="result\church.tga" />
     <Image Include="result\flower.tga" />
     <Image Include="result\checkers-filter-bartlett.tga" />
