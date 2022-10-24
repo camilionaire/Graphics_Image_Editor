@@ -278,11 +278,8 @@ bool TargaImage::Quant_Populosity()
     //int hist[32*32*32] = { 0 };
     //int ordHist[32 * 32 * 32] = { 0 };
 
-    int* hist = new int[cubeSize];
+    int* hist = new int[cubeSize] {0};
     int* ordHist = new int[cubeSize];
-    for (int i = 0; i < (32 * 32 * 32); ++i) {
-        hist[i] = 0;
-    }
     
     for (int i = 0; i < (height * width * 4); i += 4) {
         // we add a num to the color position
@@ -435,7 +432,51 @@ bool TargaImage::Dither_Random()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_FS()
 {
-    ClearToBlack();
+    // determines if go left or right init to left
+    // but imediately changed to right.
+    int dir = -4; 
+    int start = (width * 4);
+    int end = 0;
+
+    float* grayFloats = new float[height * width * 4]{ 0.0 };
+
+    for (int r = 0; r < height; ++r) {
+
+        dir = -1 * dir; // changes direction
+        int temp = start;
+        start = end;
+        end = temp;
+
+        if (r % 2 == 0) {
+            // this one goes to the right...
+            for (int c = start; c < end; c += dir) {
+                int loc = (r * width * 4) + c;
+                
+				float gray = (0.299 * data[loc + RED]
+					+ 0.587 * data[loc + GREEN]
+					+ 0.114 * data[loc + BLUE]) / 255.0;// +0.5;
+                assert(loc < (height* width * 4));
+                float shift = grayFloats[loc];
+                int newGray = gray + shift;
+                int newVal;
+                float err;
+                // STILL NEED TO ADD IN THE SHIFTS OF THE GRAY FLOATS AND AM DONE!
+                if (newGray < 0.5) {
+                    newVal = 0;
+                    err = gray;
+                }
+                else {
+                    newVal = 1;
+                    err = 1 - gray;
+                }
+                data[loc + RED] = newVal;
+                data[loc + GREEN] = newVal;
+                data[loc + BLUE] = newVal;
+            }
+
+        }
+    }
+
     return false;
 }// Dither_FS
 
