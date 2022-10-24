@@ -213,18 +213,15 @@ TargaImage* TargaImage::Load_Image(char *filename)
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::To_Grayscale()
 {
-//    ClearToBlack();
-
     for (int i = 0; i < (height * width * 4); i += 4) {
         int gray = 0.299 * data[i + RED]
             + 0.587 * data[i + GREEN]
-            + 0.114 * data[i + BLUE];
+            + 0.114 * data[i + BLUE];// +0.5;
         data[i + RED] = gray;
         data[i + GREEN] = gray;
         data[i + BLUE] = gray;
     }
     return true;
- //   return false;
 }// To_Grayscale
 
 
@@ -236,11 +233,6 @@ bool TargaImage::To_Grayscale()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Quant_Uniform()
 {
-//    ClearToBlack();
-    cout << "YEP, WE'RE IN THE QUANT-UNIF METHOD ALRIGHT... THAT'S FOR SURE."
-        << endl;
-
-    cout << "old red: " << data[RED] << " new red is: " << data[RED] / 32 << endl;
     for (int i = 0; i < (height * width * 4); i += 4) {
         int newRed = data[i + RED] / 32 + 0.5;
         int newGreen = data[i + GREEN] / 32 + 0.5;
@@ -249,7 +241,6 @@ bool TargaImage::Quant_Uniform()
         data[i + GREEN] = newGreen * 32;
         data[i + BLUE] = newBlue * 64;
     }
-//    return false;
     return true;
 }// Quant_Uniform
 
@@ -281,28 +272,36 @@ bool TargaImage::Quant_Populosity()
         data[i + BLUE] = data[i + BLUE] / 8;// +0.5;
     }
 
+    int cubeSize = 32 * 32 * 32;
+    //unsigned char *temp = new unsigned char[width * height * 4];
     // sets up a histogram and one to be ordered.
-    int hist[32*32*32] = { 0 };
-    int ordHist[32 * 32 * 32] = { 0 };
+    //int hist[32*32*32] = { 0 };
+    //int ordHist[32 * 32 * 32] = { 0 };
+
+    int* hist = new int[cubeSize];
+    int* ordHist = new int[cubeSize];
+    for (int i = 0; i < (32 * 32 * 32); ++i) {
+        hist[i] = 0;
+    }
     
     for (int i = 0; i < (height * width * 4); i += 4) {
         // we add a num to the color position
         hist[data[i + RED] * 1024 + 
             data[i + GREEN] * 32 + 
             data[i + BLUE]] += 1;
-        ordHist[data[i + RED] * 1024 + 
-            data[i + GREEN] * 32 + 
-            data[i + BLUE]] += 1;
     }
 
-    //copy(hist, hist + size(hist), ordHist);
+    copy(hist, hist + cubeSize, ordHist);
     qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
     // couldn't get this to work so instead am using ^^^
     //sort(arrToOrd, arrToOrd + (sizeP * sizeof(arrToOrd[0])));
-    //sort(ordHist, ordHist + (32 * 32 * 32));
+    //sort(ordHist, ordHist + cubeSize);
 
     int least_common = ordHist[255];
     int j = 0;
+
+    cout << "a color: " << ordHist[0] << ", " << ordHist[1] << endl;
+    cout << "least common color: " << least_common << endl;
     int colors[256][3] = { 0 };
 
     // this adds the colors that are more popular than the 256th
@@ -321,7 +320,7 @@ bool TargaImage::Quant_Populosity()
     while (j < 256) {
         if (hist[i] == least_common) {
             colors[j][RED] = i / 1024;
-            int greenDiv = i % 1042;
+            int greenDiv = i % 1024;
             colors[j][GREEN] = greenDiv / 32;
             colors[j][BLUE] = greenDiv % 32;
             ++j;
@@ -331,11 +330,11 @@ bool TargaImage::Quant_Populosity()
 
     for (int i = 0; i < (height * width * 4); i += 4) {
         // bigest distance with our 32 colors is actually 56ish
-        double closest = 1000.0; 
+        float closest = 1000.0; 
         int newColor[3];
 
         for (int j = 0; j < 256; ++j) {
-            double euclidDist = sqrt(
+            float euclidDist = sqrt(
                 pow(data[i + RED] - colors[j][RED], 2) +
                 pow(data[i + GREEN] - colors[j][GREEN], 2) +
                 pow(data[i + BLUE] - colors[j][BLUE], 2) 
@@ -374,7 +373,6 @@ bool TargaImage::Quant_Populosity()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Threshold()
 {
-//    ClearToBlack();
     To_Grayscale();
 
     // i am not going to be changing it and comparing to 0.5, instead could
@@ -492,7 +490,34 @@ bool TargaImage::Dither_Bright()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Cluster()
 {
-    ClearToBlack();
+    float ditherMatrix[4][4] = { { 0.75, 0.375, 0.6250, 0.25}, \
+                                {0.0625, 1.0, 0.875, 0.4375 }, \
+                                {0.5, 0.8125, 0.9375, 0.125}, \
+                                {0.1875, 0.5625, 0.3125, 0.6875} };
+
+    To_Grayscale();
+
+    for (int r = 0; r < height; ++r) {
+        for (int c = 0; c < (width * 4); c += 4) {
+            int loc = (r * width * 4) + c;
+            //int end_res = data[loc] * ditherMatrix[r % 4][c % 4];
+//            float gray = (0.299 * data[loc + RED]
+//				+ 0.587 * data[loc + GREEN]
+//				+ 0.114 * data[loc + BLUE]) / 255.0;
+
+            if ((data[loc] / 255.0) < ditherMatrix[r % 4][(c / 4) % 4]) {
+                data[loc + RED] = 0;
+                data[loc + GREEN] = 0;
+                data[loc + BLUE] = 0;
+            }
+            else {
+                data[loc + RED] = 255;
+                data[loc + GREEN] = 255;
+                data[loc + BLUE] = 255;
+            }
+
+        }
+    }
     return false;
 }// Dither_Cluster
 
@@ -590,15 +615,14 @@ bool TargaImage::Comp_Out(TargaImage* pImage)
 
         float alpha = (((int) pImage->data[i + 3]) / 255.0);
 
-        data[i + RED] = ((data[i + RED] / 255.0) * (1 - alpha)) * 255;
+        data[i + RED] = ((data[i + RED] / 255.0) * (1.0 - alpha)) * 255;
 
-        data[i + GREEN] = ((data[i + GREEN] / 255.0) * (1 - alpha)) * 255;
+        data[i + GREEN] = ((data[i + GREEN] / 255.0) * (1.0 - alpha)) * 255;
 
-        data[i + BLUE] = ((data[i + BLUE] / 255.0) * (1 - alpha)) * 255;
-        data[i + 3] = ((1 - alpha) * (data[i + 3] / 255.0)) * 255;
+        data[i + BLUE] = ((data[i + BLUE] / 255.0) * (1.0 - alpha)) * 255;
+        data[i + 3] = ((1.0 - alpha) * (data[i + 3] / 255.0)) * 255;
     }
 
-//    ClearToBlack();
     return true;
 }// Comp_Out
 
@@ -631,7 +655,6 @@ bool TargaImage::Comp_Atop(TargaImage* pImage)
             ((1.0 - alpha) * pAlpha)) * 255;
     }
 
-//    ClearToBlack();
     return true;
 }// Comp_Atop
 
@@ -654,11 +677,11 @@ bool TargaImage::Comp_Xor(TargaImage* pImage)
         float alpha = (((int) data[i + 3]) / 255.0);
         float pAlpha = (((int) pImage->data[i + 3]) / 255.0);
 
-        data[i + RED] = (((data[i + RED] / 255.0) * (1-pAlpha)) + \
+        data[i + RED] = (((data[i + RED] / 255.0) * (1.0-pAlpha)) + \
             ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
-        data[i + GREEN] = (((data[i + GREEN] / 255.0) * (1-pAlpha)) + \
+        data[i + GREEN] = (((data[i + GREEN] / 255.0) * (1.0-pAlpha)) + \
             ((1.0 - alpha) * (pImage->data[i + GREEN] / 255.0))) * 255;
-        data[i + BLUE] = (((data[i + BLUE] / 255.0) * (1-pAlpha)) + \
+        data[i + BLUE] = (((data[i + BLUE] / 255.0) * (1.0-pAlpha)) + \
             ((1.0 - alpha) * (pImage->data[i + BLUE] / 255.0))) * 255;
         data[i + 3] = (((1-pAlpha) * alpha) + \
             ((1.0 - alpha) * pAlpha)) * 255;
@@ -715,12 +738,6 @@ bool TargaImage::Filter_Box()
 
     copy(data, data + (width * height * 4), temp);
 
-    cout << "This is where we are for temp:" << endl;
-    cout << (int) data[0] << ", " << (int) temp[0] << endl;
-    cout << (int) data[100] << ", " << (int) temp[100] << endl;
-    cout << (int) data[1000] << ", " << (int) temp[1000] << endl;
-
-
     // goes through all the rows of the image
     for (int r = 0; r < (height); ++r) {
         // goes through each set of 4 pixels
@@ -767,6 +784,8 @@ bool TargaImage::Filter_Box()
     // copy the adjusted values back into the data.. i think
     copy(temp, temp + (width * height * 4), data);
 
+    delete[] temp;
+
     return true;
 }// Filter_Box
 
@@ -779,8 +798,53 @@ bool TargaImage::Filter_Box()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Filter_Bartlett()
 {
-    ClearToBlack();
-    return false;
+    unsigned char *temp = new unsigned char[width * height * 4];
+
+    copy(data, data + (width * height * 4), temp);
+
+    // goes through all the rows of the image
+    for (int r = 0; r < (height); ++r) {
+        // goes through each set of 4 pixels
+        for (int c = 0; c < (width * 4); c += 4) {
+            // find location of current 'pixel' in data
+			int loc = (r * width * 4) + (c);
+            // here is where we go around the pixels and add them up.
+            int sumR = 0;
+            int sumG = 0;
+            int sumB = 0;
+            for (int y = -2; y <= 2; ++y) {
+                for (int x = -2; x <= 2; ++x) {
+
+                    int ny = y;
+                    int nx = x;
+
+                    if (((r + y) < 0) || ((r + y) >= height)) {
+                        ny = -ny;
+                    }
+                    if (((c + (x*4)) < 0) || ((c + (x*4)) >= (width * 4))) {
+                        nx = -nx;
+                    }
+
+                    int shift = (ny * width * 4) + (nx * 4);
+                    
+                    sumR += data[loc + shift + RED] * (3 - abs(ny)) * (3 - abs(nx));
+                    sumG += data[loc + shift + GREEN] * (3 - abs(ny)) * (3 - abs(nx));
+                    sumB += data[loc + shift + BLUE] * (3 - abs(ny)) * (3 - abs(nx));
+                }
+            }
+
+            // divides by the total and adds 0.5 for rounding.
+            temp[loc + RED] = sumR  / 81.0 + 0.5;
+            temp[loc + GREEN] = sumG / 81.0 + 0.5;
+            temp[loc + BLUE] = sumB / 81.0 + 0.5;
+        }
+    } // after both row column for loops.
+    // copy the adjusted values back into the data.. i think
+    copy(temp, temp + (width * height * 4), data);
+
+    delete[] temp;
+
+    return true;
 }// Filter_Bartlett
 
 
@@ -792,8 +856,54 @@ bool TargaImage::Filter_Bartlett()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Filter_Gaussian()
 {
-    ClearToBlack();
-    return false;
+    unsigned char *temp = new unsigned char[width * height * 4];
+
+    copy(data, data + (width * height * 4), temp);
+
+    // goes through all the rows of the image
+    for (int r = 0; r < (height); ++r) {
+        // goes through each set of 4 pixels
+        for (int c = 0; c < (width * 4); c += 4) {
+            // find location of current 'pixel' in data
+			int loc = (r * width * 4) + (c);
+            // here is where we go around the pixels and add them up.
+            int sumR = 0;
+            int sumG = 0;
+            int sumB = 0;
+            for (int y = -2; y <= 2; ++y) {
+                for (int x = -2; x <= 2; ++x) {
+
+                    int ny = y;
+                    int nx = x;
+
+                    if (((r + y) < 0) || ((r + y) >= height)) {
+                        ny = -ny;
+                    }
+                    if (((c + (x*4)) < 0) || ((c + (x*4)) >= (width * 4))) {
+                        nx = -nx;
+                    }
+
+                    int shift = (ny * width * 4) + (nx * 4);
+                    
+                    sumR += data[loc + shift + RED] * (Binomial(4, (ny + 2))) * (Binomial(4, (nx + 2)));
+                    sumG += data[loc + shift + GREEN] * (Binomial(4, (ny + 2))) * (Binomial(4, (nx + 2)));
+                    sumB += data[loc + shift + BLUE] * (Binomial(4, (ny + 2))) * (Binomial(4, (nx + 2)));
+                }
+            }
+            // so i think this is broken because it is a (1/9)
+            // so i think it's broken because it's 25 and not 9
+            temp[loc + RED] = sumR / 256.0 + 0.5;
+            temp[loc + GREEN] = sumG / 256.0 + 0.5;
+            temp[loc + BLUE] = sumB / 256.0 + 0.5;
+
+        }
+    } // after both row column for loops.
+    // copy the adjusted values back into the data.. i think
+    copy(temp, temp + (width * height * 4), data);
+
+    delete[] temp;
+
+    return true;
 }// Filter_Gaussian
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -805,8 +915,61 @@ bool TargaImage::Filter_Gaussian()
 
 bool TargaImage::Filter_Gaussian_N( unsigned int N )
 {
-    ClearToBlack();
-   return false;
+    // since it's int, it will decrement.
+    int halfN = N / 2;
+
+    unsigned char *temp = new unsigned char[width * height * 4];
+
+    copy(data, data + (width * height * 4), temp);
+
+    // goes through all the rows of the image
+    for (int r = 0; r < (height); ++r) {
+        // goes through each set of 4 pixels
+        for (int c = 0; c < (width * 4); c += 4) {
+            // find location of current 'pixel' in data
+			int loc = (r * width * 4) + (c);
+            // here is where we go around the pixels and add them up.
+            int sumR = 0;
+            int sumG = 0;
+            int sumB = 0;
+
+            // these -2 / 2 will be based on (SIZE-1) / 2
+            for (int y = (-1 * halfN); y <= (halfN); ++y) {
+                for (int x = (-1 * halfN); x <= (halfN); ++x) {
+
+                    int ny = y;
+                    int nx = x;
+
+                    if (((r + y) < 0) || ((r + y) >= height)) {
+                        ny = -ny;
+                    }
+                    if (((c + (x*4)) < 0) || ((c + (x*4)) >= (width * 4))) {
+                        nx = -nx;
+                    }
+
+                    int shift = (ny * width * 4) + (nx * 4);
+                    
+                    int multiplier = (Binomial(N - 1, (ny + halfN))) * (Binomial(N - 1, (nx + halfN)));
+                    // these 2's will be replaced with the edge
+                    sumR += data[loc + shift + RED] * multiplier;
+                    sumG += data[loc + shift + GREEN] * multiplier;
+                    sumB += data[loc + shift + BLUE] * multiplier;
+                }
+            }
+
+            float divisor = pow(2, 2 * (N - 1));
+            // this 256 will have to be replaced with something...
+            temp[loc + RED] = sumR / divisor + 0.5;
+            temp[loc + GREEN] = sumG / divisor + 0.5;
+            temp[loc + BLUE] = sumB / divisor + 0.5;
+        }
+    } // after both row column for loops.
+    // copy the adjusted values back into the data.. i think
+    copy(temp, temp + (width * height * 4), data);
+
+    delete[] temp;
+
+    return true;
 }// Filter_Gaussian_N
 
 
