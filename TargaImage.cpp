@@ -435,49 +435,93 @@ bool TargaImage::Dither_FS()
     // determines if go left or right init to left
     // but imediately changed to right.
     int dir = -4; 
-    int start = (width * 4);
-    int end = 0;
 
     float* grayFloats = new float[height * width * 4]{ 0.0 };
+
+    To_Grayscale();
 
     for (int r = 0; r < height; ++r) {
 
         dir = -1 * dir; // changes direction
-        int temp = start;
-        start = end;
-        end = temp;
 
         if (r % 2 == 0) {
-            // this one goes to the right...
-            for (int c = start; c < end; c += dir) {
+            for (int c = 0; c < (width * 4); c += dir) {
                 int loc = (r * width * 4) + c;
-                
-				float gray = (0.299 * data[loc + RED]
-					+ 0.587 * data[loc + GREEN]
-					+ 0.114 * data[loc + BLUE]) / 255.0;// +0.5;
+
                 assert(loc < (height* width * 4));
-                float shift = grayFloats[loc];
-                int newGray = gray + shift;
+                float newGray = data[loc] / 255.0 + grayFloats[loc];
+
                 int newVal;
                 float err;
                 // STILL NEED TO ADD IN THE SHIFTS OF THE GRAY FLOATS AND AM DONE!
-                if (newGray < 0.5) {
+                if (newGray <= 0.5) {
                     newVal = 0;
-                    err = gray;
+                    err = newGray;
                 }
                 else {
-                    newVal = 1;
-                    err = 1 - gray;
+                    newVal = 255;
+                    err = newGray - 1;
                 }
+                // this sets the new color to black or white
                 data[loc + RED] = newVal;
                 data[loc + GREEN] = newVal;
                 data[loc + BLUE] = newVal;
-            }
 
+                // this adds to the error of the grays.
+                if ((c + dir) < (width * 4) && ((c + dir) >= 0)) {
+                    grayFloats[loc + dir] += ((7.0 / 16) * err);
+                    if ((r + 1) < height) {
+                        grayFloats[loc + dir + (width * 4)] += ((1.0 / 16) * err);
+                    }
+                }
+                if ((r + 1) < height) {
+                    grayFloats[loc + (width * 4)] += ((5.0 / 16) * err);
+                    if ((c - dir) < (width * 4) && ((c - dir) >= 0)) {
+						grayFloats[loc - dir + (width * 4)] += ((3.0 / 16) * err);
+                    }
+                }
+
+            }
+        }
+        else { // going backwards
+            for (int c = ((width * 4)-4); c >= 0; c += dir) {
+                int loc = (r * width * 4) + c;
+
+                assert(loc < (height* width * 4));
+                float newGray = data[loc] / 255.0 + grayFloats[loc];
+
+                int newVal;
+                float err;
+                // STILL NEED TO ADD IN THE SHIFTS OF THE GRAY FLOATS AND AM DONE!
+                if (newGray <= 0.5) {
+                    newVal = 0;
+                    err = newGray;
+                } else {
+                    newVal = 255;
+                    err = newGray - 1;
+                }
+                // this sets the new color to black or white
+                data[loc + RED] = newVal;
+                data[loc + GREEN] = newVal;
+                data[loc + BLUE] = newVal;
+
+                // this adds to the error of the grays.
+                if ((c + dir) < (width * 4) && ((c + dir) >= 0)) {
+                    grayFloats[loc + dir] += (7.0 / 16) * err;
+                    if ((r + 1) < height) {
+                        grayFloats[loc + dir + (width * 4)] += (1.0 / 16) * err;
+                    }
+                }
+                if ((r + 1) < height) {
+                    grayFloats[loc + (width * 4)] += (5.0 / 16) * err;
+                    if ((c - dir) < (width * 4) && ((c - dir) >= 0)) {
+						grayFloats[loc - dir + (width * 4)] += (3.0 / 16) * err;
+                    }
+                }
+            }
         }
     }
-
-    return false;
+    return true;
 }// Dither_FS
 
 
@@ -572,6 +616,14 @@ bool TargaImage::Dither_Cluster()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Color()
 {
+    int sum = 0;
+    for (int i = 0; i < (height * width * 4); i += 4) {
+
+        sum += data[i];
+
+    }
+    float avg = sum / (height * width);
+    cout << "average is: " << avg << endl;
     ClearToBlack();
     return false;
 }// Dither_Color
@@ -814,12 +866,6 @@ bool TargaImage::Filter_Box()
             temp[loc + RED] = sumR  / 25.0 + 0.5;
             temp[loc + GREEN] = sumG / 25.0 + 0.5;
             temp[loc + BLUE] = sumB / 25.0 + 0.5;
-            if (loc == 0) {
-                cout << "our rgb sums were" << sumR << ", " << sumG << ", " << sumB << endl;
-                cout << "our new temp color" << (int)temp[loc + RED] << endl;
-                cout << "our new temp color" << (int)temp[loc + GREEN] << endl;
-                cout << "our new temp color" << (int)temp[loc + BLUE] << endl;
-            }
         }
     } // after both row column for loops.
     // copy the adjusted values back into the data.. i think
@@ -958,6 +1004,7 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
 {
     // since it's int, it will decrement.
     int halfN = N / 2;
+	int divisor = pow(2, 2 * (N - 1));
 
     unsigned char *temp = new unsigned char[width * height * 4];
 
@@ -970,9 +1017,9 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
             // find location of current 'pixel' in data
 			int loc = (r * width * 4) + (c);
             // here is where we go around the pixels and add them up.
-            int sumR = 0;
-            int sumG = 0;
-            int sumB = 0;
+            unsigned int sumR = 0;
+            unsigned int sumG = 0;
+            unsigned int sumB = 0;
 
             // these -2 / 2 will be based on (SIZE-1) / 2
             for (int y = (-1 * halfN); y <= (halfN); ++y) {
@@ -990,19 +1037,18 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
 
                     int shift = (ny * width * 4) + (nx * 4);
                     
-                    int multiplier = (Binomial(N - 1, (ny + halfN))) * (Binomial(N - 1, (nx + halfN)));
+                    int mult = (Binomial(N - 1, (ny + halfN))) * (Binomial(N - 1, (nx + halfN)));
                     // these 2's will be replaced with the edge
-                    sumR += data[loc + shift + RED] * multiplier;
-                    sumG += data[loc + shift + GREEN] * multiplier;
-                    sumB += data[loc + shift + BLUE] * multiplier;
+                    sumR += (data[loc + shift + RED] * mult);
+                    sumG += (data[loc + shift + GREEN] * mult);
+                    sumB += (data[loc + shift + BLUE] * mult);
                 }
             }
 
-            float divisor = pow(2, 2 * (N - 1));
             // this 256 will have to be replaced with something...
-            temp[loc + RED] = sumR / divisor + 0.5;
-            temp[loc + GREEN] = sumG / divisor + 0.5;
-            temp[loc + BLUE] = sumB / divisor + 0.5;
+            temp[loc + RED] =  floor((1.0 * sumR / divisor) + 0.5);
+            temp[loc + GREEN] = floor((1.0 * sumG / divisor) + 0.5);
+            temp[loc + BLUE] = floor((1.0 * sumB / divisor) + 0.5);
         }
     } // after both row column for loops.
     // copy the adjusted values back into the data.. i think
