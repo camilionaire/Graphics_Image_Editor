@@ -213,10 +213,13 @@ TargaImage* TargaImage::Load_Image(char *filename)
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::To_Grayscale()
 {
+    // added back in the rounding of the grays (since it deprecates in c++)
+    // but I don't know if it will mess anything up.
+    // gives exact answer with or without rounding...
     for (int i = 0; i < (height * width * 4); i += 4) {
         int gray = 0.299 * data[i + RED]
             + 0.587 * data[i + GREEN]
-            + 0.114 * data[i + BLUE];// +0.5;
+            + 0.114 * data[i + BLUE] +0.5;
         data[i + RED] = gray;
         data[i + GREEN] = gray;
         data[i + BLUE] = gray;
@@ -233,10 +236,13 @@ bool TargaImage::To_Grayscale()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Quant_Uniform()
 {
+    // downgrades all the ints to smaller numbers and adds .5 for rounding.
+    // gives exact answers for church and wiz.
     for (int i = 0; i < (height * width * 4); i += 4) {
         int newRed = data[i + RED] / 32 + 0.5;
         int newGreen = data[i + GREEN] / 32 + 0.5;
         int newBlue = data[i + BLUE] / 64 + 0.5;
+        // rounds back up to regular color spectrum.
         data[i + RED] = newRed * 32;
         data[i + GREEN] = newGreen * 32;
         data[i + BLUE] = newBlue * 64;
@@ -259,24 +265,20 @@ int cmpfunc(const void* a, const void* b) {
     return (*(int*)b - *(int*)a);
 }
 
+// this comes pretty close on both, but not perfect... not sure what
+// was off.
 bool TargaImage::Quant_Populosity()
 {
-//    ClearToBlack();
-    cout << "yes, we're in the quant pop method... cool." << endl;
-
     // this downgrades all the colors and rounds them.
     // so should be between 0 and 32
     for (int i = 0; i < (height * width * 4); i += 4) {
-        data[i + RED] = data[i + RED] / 8;// +0.5; // took off rounding
-        data[i + GREEN] = data[i + GREEN] / 8;// +0.5;//see what happens
-        data[i + BLUE] = data[i + BLUE] / 8;// +0.5;
+        data[i + RED] = data[i + RED] / 8;// .0 + 0.5; // took off rounding
+        data[i + GREEN] = data[i + GREEN] / 8;// .0 + 0.5;//see what happens
+        data[i + BLUE] = data[i + BLUE] / 8;// .0 + 0.5;
     }
 
     int cubeSize = 32 * 32 * 32;
-    //unsigned char *temp = new unsigned char[width * height * 4];
     // sets up a histogram and one to be ordered.
-    //int hist[32*32*32] = { 0 };
-    //int ordHist[32 * 32 * 32] = { 0 };
 
     int* hist = new int[cubeSize] {0};
     int* ordHist = new int[cubeSize];
@@ -290,15 +292,13 @@ bool TargaImage::Quant_Populosity()
 
     copy(hist, hist + cubeSize, ordHist);
     qsort(ordHist, (32 * 32 * 32), sizeof(int), cmpfunc);
-    // couldn't get this to work so instead am using ^^^
+    // couldn't get these below to work so instead am using ^^^
     //sort(arrToOrd, arrToOrd + (sizeP * sizeof(arrToOrd[0])));
-    //sort(ordHist, ordHist + cubeSize);
+    //sort(ordHist, ordHist + cubeSize * sizeof(ordHist[0]));
 
     int least_common = ordHist[255];
     int j = 0;
 
-    cout << "a color: " << ordHist[0] << ", " << ordHist[1] << endl;
-    cout << "least common color: " << least_common << endl;
     int colors[256][3] = { 0 };
 
     // this adds the colors that are more popular than the 256th
