@@ -214,12 +214,12 @@ TargaImage* TargaImage::Load_Image(char *filename)
 bool TargaImage::To_Grayscale()
 {
     // added back in the rounding of the grays (since it deprecates in c++)
-    // but I don't know if it will mess anything up.
+    // but I don't know if it will mess anything up... it did on some things.
     // gives exact answer with or without rounding...
     for (int i = 0; i < (height * width * 4); i += 4) {
         int gray = 0.299 * data[i + RED]
             + 0.587 * data[i + GREEN]
-            + 0.114 * data[i + BLUE] +0.5;
+            + 0.114 * data[i + BLUE];// +0.5;
         data[i + RED] = gray;
         data[i + GREEN] = gray;
         data[i + BLUE] = gray;
@@ -359,6 +359,9 @@ bool TargaImage::Quant_Populosity()
         data[i + BLUE] = data[i + BLUE] * 8;
     }
 
+    delete[] hist;
+    delete[] ordHist;
+
     return true;
 }// Quant_Populosity
 
@@ -370,12 +373,15 @@ bool TargaImage::Quant_Populosity()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Threshold()
 {
-    To_Grayscale();
-
     // i am not going to be changing it and comparing to 0.5, instead could
     // just compare to 128 as ints i think...
     for (int i = 0; i < (height * width * 4); i += 4) {
-        if (data[i] < 128) {
+        // changed it to divide by 256 and that produced
+        // exact results.
+        int gray = (0.299 * data[i + RED]
+            + 0.587 * data[i + GREEN]
+            + 0.114 * data[i + BLUE]) / 256.0;// +0.5;
+        if (gray < 0.5) {
             data[i + RED] = 0;
             data[i + GREEN] = 0;
             data[i + BLUE] = 0;
@@ -418,8 +424,6 @@ bool TargaImage::Dither_Random()
         }
 
     }
-//    float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / X));
-
     return true;
 }// Dither_Random
 
@@ -444,6 +448,8 @@ bool TargaImage::Dither_FS()
 
         dir = -1 * dir; // changes direction
 
+        // I wasn't able to quite get the two different for loops
+        // combined, it was the < >= signs that got me messed up.
         if (r % 2 == 0) {
             for (int c = 0; c < (width * 4); c += dir) {
                 int loc = (r * width * 4) + c;
@@ -492,7 +498,7 @@ bool TargaImage::Dither_FS()
 
                 int newVal;
                 float err;
-                // STILL NEED TO ADD IN THE SHIFTS OF THE GRAY FLOATS AND AM DONE!
+
                 if (newGray <= 0.5) {
                     newVal = 0;
                     err = newGray;
@@ -585,10 +591,6 @@ bool TargaImage::Dither_Cluster()
     for (int r = 0; r < height; ++r) {
         for (int c = 0; c < (width * 4); c += 4) {
             int loc = (r * width * 4) + c;
-            //int end_res = data[loc] * ditherMatrix[r % 4][c % 4];
-//            float gray = (0.299 * data[loc + RED]
-//				+ 0.587 * data[loc + GREEN]
-//				+ 0.114 * data[loc + BLUE]) / 255.0;
 
             if ((data[loc] / 255.0) < ditherMatrix[r % 4][(c / 4) % 4]) {
                 data[loc + RED] = 0;
@@ -603,7 +605,7 @@ bool TargaImage::Dither_Cluster()
 
         }
     }
-    return false;
+    return true;
 }// Dither_Cluster
 
 
@@ -616,14 +618,6 @@ bool TargaImage::Dither_Cluster()
 ///////////////////////////////////////////////////////////////////////////////
 bool TargaImage::Dither_Color()
 {
-    int sum = 0;
-    for (int i = 0; i < (height * width * 4); i += 4) {
-
-        sum += data[i];
-
-    }
-    float avg = sum / (height * width);
-    cout << "average is: " << avg << endl;
     ClearToBlack();
     return false;
 }// Dither_Color
@@ -646,6 +640,7 @@ bool TargaImage::Comp_Over(TargaImage* pImage)
     for (int i = 0; i < (height * width * 4); i += 4) {
         float alpha = (((int) data[i + 3]) / 255.0);
 
+        // looks like fx + (1-af)*gx
         data[i + RED] = ((data[i + RED] / 255.0) + \
             ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
         data[i + GREEN] = ((data[i + GREEN] / 255.0) + \
@@ -677,6 +672,7 @@ bool TargaImage::Comp_In(TargaImage* pImage)
 
         float alpha = (((int) pImage->data[i + 3]) / 255.0);
 
+        // comp-in fx * gy only... no gx.
         data[i + RED] = ((data[i + RED] / 255.0) * (alpha)) * 255;
 
         data[i + GREEN] = ((data[i + GREEN] / 255.0) * (alpha)) * 255;
@@ -685,7 +681,6 @@ bool TargaImage::Comp_In(TargaImage* pImage)
         data[i + 3] = (alpha * (data[i + 3] / 255.0)) * 255;
     }
 
-//    ClearToBlack();
     return true;
 }// Comp_In
 
@@ -707,7 +702,7 @@ bool TargaImage::Comp_Out(TargaImage* pImage)
     for (int i = 0; i < (height * width * 4); i += 4) {
 
         float alpha = (((int) pImage->data[i + 3]) / 255.0);
-
+        // comp-out fx * (1-gy)
         data[i + RED] = ((data[i + RED] / 255.0) * (1.0 - alpha)) * 255;
 
         data[i + GREEN] = ((data[i + GREEN] / 255.0) * (1.0 - alpha)) * 255;
@@ -738,6 +733,7 @@ bool TargaImage::Comp_Atop(TargaImage* pImage)
         float alpha = (((int) data[i + 3]) / 255.0);
         float pAlpha = (((int) pImage->data[i + 3]) / 255.0);
 
+        // comp-atop fx*gy + gx*(1-fy)
         data[i + RED] = (((data[i + RED] / 255.0) * pAlpha) + \
             ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
         data[i + GREEN] = (((data[i + GREEN] / 255.0) * pAlpha) + \
@@ -770,6 +766,7 @@ bool TargaImage::Comp_Xor(TargaImage* pImage)
         float alpha = (((int) data[i + 3]) / 255.0);
         float pAlpha = (((int) pImage->data[i + 3]) / 255.0);
 
+        // comp-xor fx(1-gy) + gx(1-fy)
         data[i + RED] = (((data[i + RED] / 255.0) * (1.0-pAlpha)) + \
             ((1.0 - alpha) * (pImage->data[i + RED] / 255.0))) * 255;
         data[i + GREEN] = (((data[i + GREEN] / 255.0) * (1.0-pAlpha)) + \
@@ -780,7 +777,6 @@ bool TargaImage::Comp_Xor(TargaImage* pImage)
             ((1.0 - alpha) * pAlpha)) * 255;
     }
 
-//    ClearToBlack();
     return true;
 }// Comp_Xor
 
@@ -1004,7 +1000,7 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
 {
     // since it's int, it will decrement.
     int halfN = N / 2;
-	int divisor = pow(2, 2 * (N - 1));
+	long int divisor = pow(2, 2 * (N - 1));
 
     unsigned char *temp = new unsigned char[width * height * 4];
 
@@ -1017,9 +1013,9 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
             // find location of current 'pixel' in data
 			int loc = (r * width * 4) + (c);
             // here is where we go around the pixels and add them up.
-            unsigned int sumR = 0;
-            unsigned int sumG = 0;
-            unsigned int sumB = 0;
+            long int sumR = 0;
+            long int sumG = 0;
+            long int sumB = 0;
 
             // these -2 / 2 will be based on (SIZE-1) / 2
             for (int y = (-1 * halfN); y <= (halfN); ++y) {
@@ -1046,9 +1042,9 @@ bool TargaImage::Filter_Gaussian_N( unsigned int N )
             }
 
             // this 256 will have to be replaced with something...
-            temp[loc + RED] =  floor((1.0 * sumR / divisor) + 0.5);
-            temp[loc + GREEN] = floor((1.0 * sumG / divisor) + 0.5);
-            temp[loc + BLUE] = floor((1.0 * sumB / divisor) + 0.5);
+            temp[loc + RED] = floor((1.0 * sumR / divisor));// +0.5);
+            temp[loc + GREEN] = floor((1.0 * sumG / divisor));// +0.5);
+            temp[loc + BLUE] = floor((1.0 * sumB / divisor));// +0.5);
         }
     } // after both row column for loops.
     // copy the adjusted values back into the data.. i think
